@@ -11,6 +11,14 @@ Sperren und Entsperren. Sie setzt nichts voraus.
   Safari hat kein Web Bluetooth.
 - Den Scooter an und in Reichweite.
 
+## Welche Scooter unterstützt werden
+
+Das Tool führt keine feste Liste von Scooter-Modellen. Ob dein Scooter passt, entscheidet allein der verbaute Controller und der Bluetooth-Name, unter dem er sich meldet. Unterstützt wird jeder VMAX-Scooter mit HobbyWing/ZYD-Controller, dessen Bluetooth-Name mit `hw_` oder `zyd_` beginnt. Genau nach diesem Präfix sucht auch die Hersteller-App VMAX connect.
+
+So prüfst du es selbst: Scooter einschalten und mit einem Bluetooth-Scanner wie nRF Connect suchen oder direkt mit dem Tool auf Verbinden tippen. Taucht ein Gerät auf, dessen Name mit `hw_` oder `zyd_` startet, ist dein Scooter kompatibel.
+
+Der Wert, den die Hersteller-App unter "Model" zeigt, kommt vom Controller selbst, er ist nicht im Programm hinterlegt. Es gibt also keinen festen Katalog. Die Namensfamilie steuert nur den Verbindungsweg: `hw_ug...` verlangt ein selbst gesetztes Passwort, `hw_z...` sowie `zyd...` und alle übrigen `hw_`/`zyd_`-Geräte verbinden mit dem Standard-Passwort 888888.
+
 ## 1. Seite öffnen
 
 Öffne die Seite im passenden Browser. Oben siehst du den Kopf mit dem Verbindungsstatus, dem

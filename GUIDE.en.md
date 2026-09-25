@@ -11,6 +11,14 @@ It assumes nothing.
   Web Bluetooth.
 - The scooter on and in range.
 
+## Which scooters are supported
+
+The tool has no fixed list of scooter models. Whether your scooter works is decided entirely by its controller and the name it advertises over Bluetooth. Any VMAX scooter with a HobbyWing/ZYD controller is supported as long as its Bluetooth name starts with `hw_` or `zyd_`. That same prefix is what the manufacturer app VMAX connect looks for.
+
+How to check it yourself: turn the scooter on and scan with a Bluetooth scanner such as nRF Connect, or just tap Connect in the tool. If a device whose name begins with `hw_` or `zyd_` appears, your scooter is compatible.
+
+The value shown as "Model" in the manufacturer app is reported by the controller itself and is not hard-coded, so there is no fixed catalogue. The name family only changes the connection flow: `hw_ug...` asks for a password you set yourself, while `hw_z...`, `zyd...` and every other `hw_`/`zyd_` device connect with the default password 888888.
+
 ## 1. Open the page
 
 Open the page in the right browser. The header at the top shows the connection status, the light/dark
