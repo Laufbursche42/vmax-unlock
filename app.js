@@ -10,7 +10,7 @@
 
 'use strict';
 
-const BUILD = 'v2';   // logged on load so a tester's log reveals which deployed build is running
+const BUILD = 'v3';   // logged on load so a tester's log reveals which deployed build is running
 
 // --------------------------- helpers ---------------------------
 
@@ -201,6 +201,12 @@ function setControlsEnabled(on) {
   const list = [['btn-toggle', speedOn], ['speed-in', speedOn], ['ekfv-in', speedOn], ['btn-gear1', legacyOn], ['btn-gear2', legacyOn]];
   list.forEach(([id, en]) => { const el = $(id); if (el) el.disabled = !en; });
   setSettingsEnabled(on && activeProto.family === 'ZYD');
+  // Live data, settings and advanced settings appear only once a scooter is connected and identified.
+  const liveCard = $('live-card'); if (liveCard) liveCard.hidden = !on;
+  const speedCard = $('speed-card'); if (speedCard) speedCard.hidden = !on || !activeProto.speed;
+  const gearCard = $('gear-card'); if (gearCard) gearCard.hidden = !on || activeProto.family !== 'LEGACY';
+  const noSpeed = $('nospeed-card'); if (noSpeed) noSpeed.hidden = !on || activeProto.speed;
+  const moreCard = $('more-card'); if (moreCard) moreCard.hidden = !on || activeProto.family === 'LEGACY';
   updateToggleButton();
 }
 function openSpeedValue() { const v = parseInt(($('speed-in') || {}).value, 10); return isNaN(v) ? 30 : v; }
@@ -230,14 +236,8 @@ function buildModelDropdown() {
 }
 function applyModelUi() {
   const on = modelChosen;
-  const auto = autoDetect && !connected;
-  // In auto-detect preview (no scooter yet) show the speed card so it is discoverable; its controls
-  // stay disabled until a connection. Once connected/chosen it follows whether the model has BLE speed.
-  const speedCard = $('speed-card'); if (speedCard) speedCard.hidden = !on || (!auto && !activeProto.speed);
-  const gearCard = $('gear-card'); if (gearCard) gearCard.hidden = !on || auto || activeProto.family !== 'LEGACY';
-  const noSpeed = $('nospeed-card'); if (noSpeed) noSpeed.hidden = !on || auto || activeProto.speed;
+  // Card visibility lives in setControlsEnabled now, gated on the connection: nothing shows before connect.
   renderSettings();
-  const moreCard = $('more-card'); if (moreCard) moreCard.hidden = !on || (!auto && activeProto.family === 'LEGACY');
   const sel = $('model-in'); if (sel && on && !autoDetect && sel.value !== activeProto.id) sel.value = activeProto.id;
   const cb = $('btn-conn'); if (cb && !connected) cb.disabled = !on;
   setControlsEnabled(connected);
