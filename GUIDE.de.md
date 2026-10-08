@@ -3,6 +3,8 @@
 Diese Anleitung führt Schritt für Schritt durch das VMAX Tool, vom ersten Verbinden bis zum
 Sperren und Entsperren. Sie setzt nichts voraus.
 
+> **Wichtig für Fehler-Reports:** Schalte unten auf der Seite den **Diagnose-Log** ein, *bevor* du dich mit dem Scooter verbindest. Nur dann wird der komplette Verbindungsaufbau mitgeschnitten - und genau diese Zeilen brauchen wir in einem [Ticket](https://github.com/Laufbursche42/Laufbursche42/issues), um ein Problem nachzuvollziehen.
+
 ## Was du brauchst
 
 - Einen VMAX-E-Scooter der klassischen Reihe (Hersteller-App VMAX connect). Er meldet sich per Bluetooth
@@ -88,3 +90,6 @@ und setzt sofort die Geschwindigkeit: eine Verknüpfung fürs Entsperren, eine f
 Das Anheben der Höchstgeschwindigkeit hebt die Drossel auf. Die ABE erlischt und der Betrieb auf
 öffentlichen Wegen ist dann nicht erlaubt. Nutze das Werkzeug nur am eigenen Fahrzeug auf privatem
 Gelände und auf eigenes Risiko.
+
+## Mithelfen
+Willst du herausfinden, ob und wie Tuning bei deinem Scooter geht? Teste dieses Tool an deinem eigenen Fahrzeug und öffne ein Ticket auf [GitHub](https://github.com/Laufbursche42/Laufbursche42/issues) - mit deinem Modell und was funktioniert hat (oder nicht). So finden wir gemeinsam heraus, was bei welchem Modell möglich ist.

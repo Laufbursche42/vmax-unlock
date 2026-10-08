@@ -10,7 +10,7 @@
 
 'use strict';
 
-const BUILD = 'v4';   // logged on load so a tester's log reveals which deployed build is running
+const BUILD = 'v5';   // logged on load so a tester's log reveals which deployed build is running
 
 // --------------------------- helpers ---------------------------
 
@@ -137,9 +137,8 @@ let escInfoBuf = new Uint8Array(80);   // ESC info strings (model/hardware/boot/
 function $(id) { return document.getElementById(id); }
 
 const logLines = [];
-function ts() { const d = new Date(); const p = (n, w) => String(n).padStart(w || 2, '0'); return p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds()) + '.' + p(d.getMilliseconds(), 3); }
 function log(m, cls) {
-  const line = '[' + ts() + '] ' + m;
+  const line = '[' + new Date().toTimeString().slice(0, 8) + '] ' + m;
   logLines.push(line);
   const el = $('log'); if (!el) return;
   const span = document.createElement('div');
@@ -152,10 +151,11 @@ function logDiagnosticHeader() {
   log('=== vmax-unlock diagnostic ===');
   log('build: ' + BUILD);
   log('time: ' + new Date().toISOString());
-  log('userAgent: ' + (nav.userAgent || '(unknown)'));
-  log('platform: ' + (nav.platform || '(unknown)'));
+  log('userAgent: ' + (nav.userAgent || '?'));
+  log('platform: ' + (nav.platform || '?'));
   log('webBluetooth: ' + (nav.bluetooth ? 'yes' : 'no'));
-  log('============================');
+  log('protocol self-test: ' + (PROTO_OK ? 'OK' : 'FAILED'));
+  log('================================');
 }
 async function copyLog() {
   const text = logLines.join('\n');
@@ -173,6 +173,18 @@ function copyLogFallback(text) {
     document.body.removeChild(ta); return !!ok;
   } catch (e) { return false; }
 }
+// CRLF on Windows so the saved log pastes cleanly into Notepad.
+function osNewline() { return (navigator.platform || '').toLowerCase().indexOf('win') === 0 ? '\r\n' : '\n'; }
+function saveLog() {
+  try {
+    const blob = new Blob([logLines.join('\n').split('\n').join(osNewline())], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'laufbursche42-vmax-log.txt';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    log('log saved (' + logLines.length + ' lines)', 'log-ok');
+  } catch (e) { log('save failed: ' + (e && e.message ? e.message : e), 'log-err'); }
+}
 const HELP = { speed: ['s3Title', 'settingsHint'], gear: ['gearTitle', 'gearHint'], more: ['moreTitle', 'moreHint'], disclaimer: ['footDisclaimer', 'disclaimerText'] };
 function openHelp(key) {
   const m = HELP[key]; if (!m) return;
@@ -185,7 +197,7 @@ function openHelp(key) {
 function closeHelp() { const dlg = $('help'); if (!dlg) return; if (dlg.close) dlg.close(); else dlg.removeAttribute('open'); }
 function clearLog() { logLines.length = 0; const el = $('log'); if (el) el.textContent = ''; logDiagnosticHeader(); log('log cleared'); }
 function setTile(id, val) { const el = $(id); if (el) el.textContent = (val == null ? '-' : val); }
-function resetTiles() { ['t-speed', 't-batt', 't-volt', 't-cur', 't-power', 't-temp', 't-battemp', 't-trip', 't-total', 't-cap', 't-lock', 't-cruise', 't-fault', 't-fw', 't-disp'].forEach(id => setTile(id, null)); }
+function resetTiles() { ['t-speed', 't-gear', 't-limit', 't-limcruise', 't-batt', 't-volt', 't-cur', 't-power', 't-temp', 't-battemp', 't-trip', 't-total', 't-cap', 't-lock', 't-cruise', 't-light', 't-atmo', 't-unit', 't-zero', 't-fault', 't-fw', 't-disp', 't-model', 't-hw', 't-escboot'].forEach(id => setTile(id, null)); }
 function statusLabel(s) {
   const map = { disconnected: 'stDisconnected', connecting: 'stConnecting', linking: 'stLinking', connected: 'stConnected', 'no-service': 'stNoService', 'no-char': 'stNoChar' };
   return t(map[s] || 'stDisconnected') || s;
@@ -201,12 +213,8 @@ function setControlsEnabled(on) {
   const list = [['btn-toggle', speedOn], ['speed-in', speedOn], ['ekfv-in', speedOn], ['btn-gear1', legacyOn], ['btn-gear2', legacyOn]];
   list.forEach(([id, en]) => { const el = $(id); if (el) el.disabled = !en; });
   setSettingsEnabled(on && activeProto.family === 'ZYD');
-  // Live data, settings and advanced settings appear only once a scooter is connected and identified.
-  const liveCard = $('live-card'); if (liveCard) liveCard.hidden = !on;
-  const speedCard = $('speed-card'); if (speedCard) speedCard.hidden = !on || !activeProto.speed;
-  const gearCard = $('gear-card'); if (gearCard) gearCard.hidden = !on || activeProto.family !== 'LEGACY';
-  const noSpeed = $('nospeed-card'); if (noSpeed) noSpeed.hidden = !on || activeProto.speed;
-  const moreCard = $('more-card'); if (moreCard) moreCard.hidden = !on || activeProto.family === 'LEGACY';
+  // Telemetry, settings and advanced cards appear only once a scooter is connected (uniform shell).
+  ['live-card', 'batt-card', 'more-card', 'raw-card'].forEach(id => { const c = $(id); if (c) c.hidden = !on; });
   updateToggleButton();
 }
 function openSpeedValue() { const v = parseInt(($('speed-in') || {}).value, 10); return isNaN(v) ? 30 : v; }
@@ -304,32 +312,6 @@ async function pickAndConnect() {
 }
 
 function charProps(c) { const p = c.properties || {}; return ['read', 'write', 'writeWithoutResponse', 'notify', 'indicate'].filter(k => p[k]).join(',') || '-'; }
-async function scanAllDevicesDiagnostic() {
-  if (!navigator.bluetooth) { log('Web Bluetooth not available. Use Bluefy (iOS) or Chrome (Android/desktop).', 'log-err'); return; }
-  let dev = null;
-  try {
-    log('DIAG: showing ALL Bluetooth devices. Pick your scooter, even if the name looks wrong or missing.', 'log-ok');
-    dev = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: ALL_SERVICES });
-  } catch (e) { log('DIAG cancelled: ' + e, 'log-err'); return; }
-  log('DIAG selected: name="' + (dev.name || '(no name)') + '"  id=' + dev.id);
-  const cls = classifyByName(dev.name);
-  log('DIAG classify: ' + (cls ? (cls === 'legacy' ? 'Legacy (Scooter)' : 'ZYD') : 'NOT recognized - the advertised name does not start with hw_ or zyd_'), cls ? 'log-ok' : 'log-err');
-  try {
-    log('DIAG: connecting to read the GATT services ...');
-    const srv = await dev.gatt.connect();
-    let svcs = [];
-    try { svcs = await srv.getPrimaryServices(); } catch (e) { log('DIAG getPrimaryServices error: ' + e, 'log-err'); }
-    if (!svcs || !svcs.length) log('DIAG: none of the known services is present (ZYD F1F0, AT F2F0, Legacy 7777).', 'log-err');
-    else for (const s of svcs) {
-      log('DIAG service ' + s.uuid, 'log-ok');
-      try { const chs = await s.getCharacteristics(); for (const c of chs) log('DIAG   char ' + c.uuid + '  [' + charProps(c) + ']'); }
-      catch (e) { log('DIAG   (characteristics unreadable: ' + e + ')'); }
-    }
-    try { dev.gatt.disconnect(); } catch (e) {}
-    log('DIAG done. Copy the log and send it. For the full picture use nRF Connect on Android.', 'log-ok');
-  } catch (e) { log('DIAG connect failed: ' + e, 'log-err'); }
-}
-
 async function resolveService(srv) {
   // Try the family transport first, then the other, so a mislabeled pick still connects.
   const order = activeProto.family === 'LEGACY' ? ['legacy', 'zyd'] : ['zyd', 'legacy'];
@@ -497,6 +479,9 @@ function handleFrame(b) {
       if (off + 8 >= 64) {   // firmware region (48..63) is complete -> render
         const model = asciiClean(escInfoBuf.subarray(0, 16)), hw = asciiClean(escInfoBuf.subarray(16, 32));
         const boot = asciiClean(escInfoBuf.subarray(32, 48)), fw = asciiClean(escInfoBuf.subarray(48, 64));
+        setTile('t-model', model || '-');
+        setTile('t-hw', hw || '-');
+        setTile('t-escboot', boot || '-');
         setTile('t-fw', fw || '-');
         log('  ESC info: model=' + model + ' hardware=' + hw + ' boot=' + boot + ' firmware=' + fw, 'log-ok');
       }
@@ -535,6 +520,13 @@ function decodeZydMonitor(b) {
     setTile('t-total', total.toFixed(1) + ' km');
     setTile('t-lock', t(lock ? 'valLocked' : 'valUnlocked'));
     setTile('t-cruise', t(bp.cruise ? 'optOn' : 'optOff'));
+    // Switch states decoded from the same u16BE@21 status word (belegt shared library: headLight bit2,
+    // ambient bit15, metric bit6, zeroStart/boot bit5), plus the raw gear stage from b[4].
+    setTile('t-gear', bp.gear === 0 ? 'D' : bp.gear === 1 ? 'T' : String(bp.gear));
+    setTile('t-light', t(bp.headlight ? 'optOn' : 'optOff'));
+    setTile('t-atmo', t(bp.ambient ? 'optOn' : 'optOff'));
+    setTile('t-unit', bp.imperial ? 'mph' : 'km/h');
+    setTile('t-zero', t(bp.boot ? 'optOff' : 'optOn'));   // Kickstart on = boot bit clear (setting inverts)
     log('  monitorA: speed=' + speed.toFixed(1) + 'km/h batt=' + batt + '% ' + volt.toFixed(1) + 'V ' + cur.toFixed(1) + 'A escT=' + escT + ' motT=' + motT + ' gear=' + b[4] + ' lock=' + lock + ' trip=' + (rdU16BE(b, 16) / 10).toFixed(1) + 'km', 'log-ok');
   } else if (sub === 0x01 && b.length >= 16) {
     const fault = rdU16BE(b, 8);
@@ -546,6 +538,10 @@ function decodeZydMonitor(b) {
     updateToggleButton();
     setTile('t-battemp', rdS8(b[7]) + ' C');
     setTile('t-cap', rdU16BE(b, 14) + '/' + rdU16BE(b, 12));
+    // Current per-mode speed limits + cruise limit, the values the unlock actually changes (belegt shared
+    // library: limitMode1/2/3 = b[4..6], limitCruise = b[3]); raw byte = km/h.
+    setTile('t-limit', bp.m1 + '/' + bp.m2 + '/' + bp.m3 + ' km/h');
+    setTile('t-limcruise', bp.limitCruise + ' km/h');
     setTile('t-fault', faults.length ? faults.join(',') : t('valNone'));
     if (b.length >= 23) setTile('t-disp', 'V' + b[20] + '.' + b[21] + '.' + b[22]);
     log('  monitorB: limits=' + b[4] + '/' + b[5] + '/' + b[6] + 'km/h cruiseLimit=' + b[3] + ' battTemp=' + rdS8(b[7]) + ' fault=' + (faults.length ? faults.join(',') : 'none') + ' cap=' + rdU16BE(b, 14) + '/' + rdU16BE(b, 12), 'log-ok');
@@ -833,7 +829,7 @@ function initLangSwitch() { document.querySelectorAll('#langs button').forEach(b
 function applyTheme(dark) {
   document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
   const b = $('btn-theme');
-  if (b) { b.innerHTML = dark ? '&#9728;' : '&#9790;'; b.setAttribute('aria-label', t(dark ? 'themeToLight' : 'themeToDark')); b.title = b.getAttribute('aria-label'); }   // scan-ok: a fixed character, not user input
+  if (b) { b.textContent = dark ? '\u2600' : '\u263E'; b.setAttribute('aria-label', t(dark ? 'themeToLight' : 'themeToDark')); b.title = b.getAttribute('aria-label'); }
   try { localStorage.setItem(LS_THEME, dark ? 'dark' : 'light'); } catch (e) {}
 }
 function initTheme() {
@@ -973,7 +969,6 @@ window.addEventListener('DOMContentLoaded', () => {
   { try { const pin = localStorage.getItem(LS_PIN); if (pin && $('pin-in')) $('pin-in').value = pin; } catch (e) {} }
   applyLang();
 
-  log('protocol self-test (frame builders vs belegte vectors): ' + (PROTO_OK ? 'OK' : 'FAILED'), PROTO_OK ? 'log-ok' : 'log-err');
   if (!modelChosen) log('no model selected yet. Pick your model to begin.');
 
   $('btn-conn').addEventListener('click', () => { if ($('btn-conn').dataset.act === 'disconnect') disconnectBle(); else pickAndConnect(); });
@@ -986,7 +981,7 @@ window.addEventListener('DOMContentLoaded', () => {
   { const b = $('btn-gear2'); if (b) b.addEventListener('click', () => cmdGear(true)); }
   renderSettings();
   { const b = $('btn-copy-log'); if (b) b.addEventListener('click', copyLog); }
-  { const b = $('btn-diag'); if (b) b.addEventListener('click', scanAllDevicesDiagnostic); }
+  { const b = $('btn-save-log'); if (b) b.addEventListener('click', saveLog); }
   { const b = $('btn-clear-log'); if (b) b.addEventListener('click', clearLog); }
 
   setControlsEnabled(false);
