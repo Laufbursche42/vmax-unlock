@@ -10,7 +10,7 @@
 
 'use strict';
 
-const BUILD = 'v9';   // logged on load so a tester's log reveals which deployed build is running
+const BUILD = 'v10';   // logged on load so a tester's log reveals which deployed build is running
 
 // --------------------------- helpers ---------------------------
 
