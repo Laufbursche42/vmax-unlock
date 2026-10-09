@@ -10,7 +10,7 @@
 
 'use strict';
 
-const BUILD = 'v6';   // logged on load so a tester's log reveals which deployed build is running
+const BUILD = 'v7';   // logged on load so a tester's log reveals which deployed build is running
 
 // --------------------------- helpers ---------------------------
 
@@ -977,6 +977,7 @@ window.addEventListener('DOMContentLoaded', () => {
   { const s = $('speed-in'); if (s) s.addEventListener('change', () => { try { localStorage.setItem(LS_SPEED, s.value); } catch (e) {} }); }
   { const e2 = $('ekfv-in'); if (e2) e2.addEventListener('change', () => { try { localStorage.setItem(LS_EKFV, e2.value); } catch (er) {} }); }
   { const pin = $('pin-in'); if (pin) pin.addEventListener('change', () => { try { localStorage.setItem(LS_PIN, pin.value.trim()); } catch (e) {} }); }
+  { const sa = $('showall'); if (sa) sa.addEventListener('change', () => { log('show-all-devices: ' + (sa.checked ? 'on' : 'off')); }); }
   { const b = $('btn-gear1'); if (b) b.addEventListener('click', () => cmdGear(false)); }
   { const b = $('btn-gear2'); if (b) b.addEventListener('click', () => cmdGear(true)); }
   renderSettings();
