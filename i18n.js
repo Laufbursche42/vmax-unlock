@@ -186,7 +186,6 @@ window.I18N = {
 
     footGuide: "Anleitung",
     footDisclaimer: "Haftungsausschluss",
-    disclaimerText: "Dieses Werkzeug ist eine Machbarkeitsstudie, kein fertiges Produkt. Es gibt keine Gewährleistung und keine Garantie für fehlerfreien Betrieb. Die Schreibbefehle stammen aus der Hersteller-App, sind aber nicht am Gerät verifiziert - ob ein geschriebener Wert angenommen wird, entscheidet die Firmware des Scooters und ist an echter Hardware unbestätigt. Das Anheben der Geschwindigkeit hebt die Drossel auf: die ABE erlischt und der Betrieb auf öffentlichen Wegen ist dann nicht erlaubt. Nutzung ausschließlich am eigenen Fahrzeug und auf eigenes Risiko. Die Seite spricht nur lokal per Bluetooth mit dem Gerät, es werden keine Daten an einen Server gesendet. VMAX ist eine Marke des jeweiligen Inhabers. Dieses Projekt ist unabhängig und nicht mit VMAX verbunden.",
     footSource: "Quellcode",
     footIssue: "Fehler melden",
     footReadme: "Readme",
@@ -390,7 +389,6 @@ window.I18N = {
 
     footGuide: "Guide",
     footDisclaimer: "Disclaimer",
-    disclaimerText: "This tool is a feasibility study, not a finished product. There is no warranty and no guarantee of error-free operation. The write commands are taken from the manufacturer app but not verified on a device - whether a written value is accepted is decided by the scooter's firmware and is unconfirmed on real hardware. Raising the speed removes the throttle: the type approval becomes void and riding on public roads is then not allowed. Use it only on your own vehicle and at your own risk. The page talks to the device locally over Bluetooth only, no data is sent to any server. VMAX is a trademark of its respective owner. This project is independent and not affiliated with VMAX.",
     footSource: "Source",
     footIssue: "Report an issue",
     footReadme: "Readme",
